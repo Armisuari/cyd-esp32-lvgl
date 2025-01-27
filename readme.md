@@ -4,7 +4,7 @@
 
 ## Firmware Design
 
-'''C++
+'''C
 
 // Application
 bool init();
