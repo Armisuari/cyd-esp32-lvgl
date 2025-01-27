@@ -4,7 +4,7 @@
 
 ## Firmware Design
 
-'''C
+```C++
 
 // Application
 bool init();
@@ -32,4 +32,4 @@ bool deleteFile(char *path);
 bool deleteAllFile(char *path);
 bool isDirectory();
 
-'''
+```
