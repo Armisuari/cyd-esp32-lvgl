@@ -8,13 +8,17 @@
 
 // Application
 bool init();
-bool displayGif(char *path);
+int displayGif(char *path);
 bool displayAllGif(char *dir);
 bool startWebServer();
 
-// Display
+// Web Server
 bool init();
-bool drawGif();
+bool serverOn(const char *page);
+
+// Display
+void init();
+bool tftDraw();
 
 // Network
 bool init();
@@ -27,9 +31,9 @@ bool getSignalStrength();
 
 // Storage
 bool init();
-bool open();
-bool deleteFile(char *path);
-bool deleteAllFile(char *path);
+bool openFile(char *fileName);
+bool deleteFile(char *fileName);
+bool deleteAllFiles(char *dir);
 bool isDirectory();
 
 ```

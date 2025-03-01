@@ -17,8 +17,8 @@
 char ssid[sizeof(WIFI_SSID_PREFIX) + 6];
 const char *password = "123456789"; // You can change this as needed
 #else
-const char *ssid = "eFisheryFS";
-const char *password = "123123123";
+const char *ssid = "fatur-fatin";
+const char *password = "putri1986";
 #endif
 
 AsyncWebServer server(80);
