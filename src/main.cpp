@@ -16,7 +16,8 @@ Storage_SD stg(5);
 Display_ST7796 display;
 // Network_Wifi network("eFisheryFS", "123123123");
 // Network_Wifi network("fatur-fatin", "putri1986");
-Network_Wifi network("AksesPoin_eFishery", "efishery2516!");
+// Network_Wifi network("AksesPoin_eFishery", "efishery2516!");
+Network_Wifi network("Angkasa-Timelapse", "1234567890");
 
 GifDisplayer app(stg, display, network);
 

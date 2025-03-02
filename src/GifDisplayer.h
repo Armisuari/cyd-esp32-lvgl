@@ -43,8 +43,10 @@ class GifDisplayer
 
         static EventGroupHandle_t wifi_event_group;
         static TaskHandle_t _taskHandle;
+        static TaskHandle_t _taskFileHandle;
 
         static void _taskFunction(void *pvParameters);
+        static void _taskFuncFileHandle(void *pvParameters);
 
         bool startWebServer();
         int getGifInventory(const char *basePath);

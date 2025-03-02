@@ -9,28 +9,28 @@
 #include <interface/StorageInterface.h>
 
 using HandleFileUploadCB = std::function<void(String, size_t, uint8_t *, size_t, bool)>;
-// using HandleFileDeleteCB = std::function<void()>;
+using HandleFileDeleteCB = std::function<void()>;
 
 class WebServerHandler
 {
     public:
-        WebServerHandler(StorageInterface &storage, TaskHandle_t *gifTaskHandle);
+        WebServerHandler(StorageInterface &storage);
         ~WebServerHandler();
-        bool init(bool netConnected);
+        bool init(bool netConnected, TaskHandle_t taskFileHandle);
         void setHandleFileUploadCB(HandleFileUploadCB cb) { _handleFileUploadCB = cb; }
-        // void setHandleFileDeleteCB(std::function<void()> cb) { _handleFileDeleteCB = cb; }
+        void setHandleFileDeleteCB(std::function<void()> cb) { _handleFileDeleteCB = cb; }
 
     private:
         void handleFileUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final);
         void handleFileDelete();
 
         HandleFileUploadCB _handleFileUploadCB;
-        // HandleFileDeleteCB _handleFileDeleteCB;
+        HandleFileDeleteCB _handleFileDeleteCB;
 
         StorageInterface &_storage;
         AsyncWebServer server{80};
 
-        TaskHandle_t *_gifTaskHandle;
+        TaskHandle_t _taskFileHandle;
 
         bool _gifPlay = false;
 

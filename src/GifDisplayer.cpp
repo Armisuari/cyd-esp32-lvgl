@@ -1,4 +1,5 @@
 #include <esp_task_wdt.h>
+#include <vector>
 #include "GifDisplayer.h"
 
 const char *appTag = "GifDisplayer";
@@ -13,8 +14,9 @@ int GifDisplayer::yOffSet = 0;
 
 EventGroupHandle_t GifDisplayer::wifi_event_group = NULL;
 TaskHandle_t GifDisplayer::_taskHandle = NULL;
+TaskHandle_t GifDisplayer::_taskFileHandle = NULL;
 
-GifDisplayer::GifDisplayer(StorageInterface &storage, DisplayInterface &display, NetworkInterface &network) : _storage(storage), _display(display), _network(network), webServerHandler(storage, &_taskHandle)
+GifDisplayer::GifDisplayer(StorageInterface &storage, DisplayInterface &display, NetworkInterface &network) : _storage(storage), _display(display), _network(network), webServerHandler(storage)
 {
     instance = this;
     currentGifFile = 0;
@@ -62,6 +64,8 @@ bool GifDisplayer::init()
         return false;
     }
 
+    xTaskCreate(_taskFuncFileHandle, "FileHandleTask", 4096, this, 10, &_taskFileHandle);
+
     EventBits_t bits = xEventGroupWaitBits(wifi_event_group, WIFI_CONNECTED_BIT, pdFALSE, pdTRUE, portMAX_DELAY);
     ESP_LOGI(appTag, "Starting Web Server");
     if (!startWebServer())
@@ -79,7 +83,6 @@ bool GifDisplayer::init()
         return false;
     }
 
-    // webServerHandler.isGifPlay(true);
     xTaskCreate(_taskFunction, "GifDisplayerTask", 4096, this, 5, &_taskHandle);
 
     return true;
@@ -349,8 +352,8 @@ void GifDisplayer::displayAllGif()
 bool GifDisplayer::startWebServer()
 {
     webServerHandler.setHandleFileUploadCB(std::bind(&GifDisplayer::_uploadFileHandleCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5));
-    // webServerHandler.setHandleFileDeleteCB(std::bind(&GifDisplayer::_deleteFileHandleCallback, this));
-    return webServerHandler.init(_network.isConnected());
+    webServerHandler.setHandleFileDeleteCB(std::bind(&GifDisplayer::_deleteFileHandleCallback, this));
+    return webServerHandler.init(_network.isConnected(), _taskFileHandle);
 }
 
 void GifDisplayer::_uploadFileHandleCallback(String filename, size_t index, uint8_t *data, size_t len, bool final)
@@ -391,11 +394,47 @@ void GifDisplayer::_uploadFileHandleCallback(String filename, size_t index, uint
         // // Add a delay to allow other tasks to run and reset the watchdog timer
         // vTaskDelay(10 / portTICK_PERIOD_MS);
 
-        if (final)
+    if (final)
+    {
+        ESP_LOGD(appTag, "Finalizing file: %s\n", filename.c_str());
+        uploadFile.close();
+
+        ESP_LOGD(appTag, "File uploaded: %s\n", filename.c_str());
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        esp_restart();
+    }
+}
+
+void GifDisplayer::_deleteFileHandleCallback()
+{
+    if (_taskHandle != NULL)
+    {
+        vTaskDelete(_taskHandle);
+    }
+
+    ESP_LOGW(appTag, "Deleting all files");
+    _storage.deleteAllFiles("/");
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
+    esp_restart();
+}
+
+/*STATIC*/ void GifDisplayer::_taskFuncFileHandle(void *pvParameters)
+{
+    GifDisplayer *app = static_cast<GifDisplayer *>(pvParameters);
+    uint32_t receivedValue;
+    while (1)
+    {
+        if (xTaskNotifyWait(0, 0, &receivedValue, portMAX_DELAY) == pdTRUE)
         {
-            uploadFile.close();
-            ESP_LOGD(appTag, "File uploaded: %s\n", filename.c_str());
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
+            if (_taskHandle != NULL)
+            {
+                vTaskDelete(_taskHandle);
+            }
+
+            ESP_LOGW(appTag, "Deleting all files");
+            app->_storage.deleteAllFiles("/");
+            vTaskDelay(2000 / portTICK_PERIOD_MS);
             esp_restart();
         }
     }
+}

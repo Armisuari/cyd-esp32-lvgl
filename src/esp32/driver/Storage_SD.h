@@ -5,6 +5,7 @@
 #include <FS.h>
 #include <SPI.h>
 #include <SD.h>
+#include <LittleFS.h>
 
 class Storage_SD : public StorageInterface
 {

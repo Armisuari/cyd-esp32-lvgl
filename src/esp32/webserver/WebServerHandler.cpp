@@ -3,7 +3,7 @@
 
 const char *webServerTag = "WebServerHandler";
 
-WebServerHandler::WebServerHandler(StorageInterface &storage, TaskHandle_t *gifTaskHandle) : _storage(storage), _gifTaskHandle(gifTaskHandle)
+WebServerHandler::WebServerHandler(StorageInterface &storage) : _storage(storage), _taskFileHandle(NULL)
 {
 }
 
@@ -11,13 +11,15 @@ WebServerHandler::~WebServerHandler()
 {
 }
 
-bool WebServerHandler::init(bool netConnected)
+bool WebServerHandler::init(bool netConnected, TaskHandle_t taskFileHandle)
 {
     if (!netConnected)
     {
         ESP_LOGE(webServerTag, "No network connection");
         return false;
     }
+
+    _taskFileHandle = taskFileHandle;
 
     _storage.init();
 
@@ -36,7 +38,9 @@ bool WebServerHandler::init(bool netConnected)
     // handleFileUpload);
 
     server.on("/delete", HTTP_POST, [this](AsyncWebServerRequest *request)
-              { handleFileDelete(); });
+              {
+                handleFileDelete(); 
+                request->send(200, "text/plain", "All files deleted!"); });
 
     server.begin();
 
@@ -53,15 +57,17 @@ void WebServerHandler::handleFileUpload(AsyncWebServerRequest *request, String f
 
 void WebServerHandler::handleFileDelete()
 {
+    // if (_handleFileDeleteCB)
+    // {
+    //     _handleFileDeleteCB();
+    // }
 
-    if (_gifTaskHandle != NULL)
+    if (_taskFileHandle != NULL)
     {
-        vTaskDelete(*_gifTaskHandle);
+        xTaskNotify(_taskFileHandle, 100, eSetValueWithoutOverwrite); // send value 100 to taskFileHandle
     }
-
-    // esp_task_wdt_reset(); // Reset the watchdog timer
-    ESP_LOGW(webServerTag, "Deleting all files");
-    _storage.deleteAllFiles("//");
-    vTaskDelay(2000 / portTICK_PERIOD_MS);
-    esp_restart();
+    else
+    {
+        ESP_LOGE(webServerTag, "Task file handle is NULL");
+    }
 }
