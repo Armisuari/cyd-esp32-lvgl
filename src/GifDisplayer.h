@@ -47,6 +47,7 @@ class GifDisplayer
 
         static void _taskFunction(void *pvParameters);
         static void _taskFuncFileHandle(void *pvParameters);
+        static void _taskFuncWebServer(void *pvParameters);
 
         bool startWebServer();
         int getGifInventory(const char *basePath);

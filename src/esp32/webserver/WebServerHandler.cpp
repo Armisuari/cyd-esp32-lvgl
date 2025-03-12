@@ -13,11 +13,11 @@ WebServerHandler::~WebServerHandler()
 
 bool WebServerHandler::init(bool netConnected, TaskHandle_t taskFileHandle)
 {
-    if (!netConnected)
-    {
-        ESP_LOGE(webServerTag, "No network connection");
-        return false;
-    }
+    // if (!netConnected)
+    // {
+    //     ESP_LOGE(webServerTag, "No network connection");
+    //     return false;
+    // }
 
     _taskFileHandle = taskFileHandle;
 

@@ -15,7 +15,7 @@ class Storage_SD : public StorageInterface
         bool init();
         fs::File openFile(const String& fileName, const char* mode = "r");
         bool deleteFile(const String& fileName);
-        bool deleteAllFiles(const char *dir);
+        bool deleteAllFiles();
         bool deleteDirectory(const char *dirname);
 
     private:
