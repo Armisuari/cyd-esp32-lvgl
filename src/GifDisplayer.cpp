@@ -28,34 +28,12 @@ GifDisplayer::~GifDisplayer()
 
 bool GifDisplayer::init()
 {
+    vTaskDelay(1000);
     ESP_LOGI(appTag, "Initializing Peripherals");
     _display.init();
     _storage.init();
 
     _display.fillScreen(TFT_BLACK);
-
-    wifi_event_group = xEventGroupCreate();
-    if (wifi_event_group == NULL)
-    {
-        ESP_LOGE(appTag, "Failed to create event group");
-        return false;
-    }
-
-    ESP_LOGW(appTag, "Waiting for network connection");
-    if (!_network.init(WIFI_STA))
-    {
-        ESP_LOGE(appTag, "Failed to initialize network");
-        return false;
-    }
-
-    if (_network.isConnected())
-    {
-        xEventGroupSetBits(wifi_event_group, WIFI_CONNECTED_BIT);
-    }
-    else
-    {
-        xEventGroupSetBits(wifi_event_group, WIFI_DISCONNECTED_BIT);
-    }
 
     xGifMutex = xSemaphoreCreateMutex();
     if (xGifMutex == NULL)
@@ -65,13 +43,24 @@ bool GifDisplayer::init()
     }
 
     xTaskCreate(_taskFuncFileHandle, "FileHandleTask", 4096, this, 10, &_taskFileHandle);
+    // xTaskCreate(_taskFuncWebServer, "WebServerTask", 4096, this, 1, NULL);
 
-    EventBits_t bits = xEventGroupWaitBits(wifi_event_group, WIFI_CONNECTED_BIT, pdFALSE, pdTRUE, portMAX_DELAY);
-    ESP_LOGI(appTag, "Starting Web Server");
+    wifi_event_group = xEventGroupCreate();
+    if (wifi_event_group == NULL)
+    {
+        ESP_LOGE(appTag, "Failed to create event group");
+    }
+    
+    ESP_LOGW(appTag, "Waiting for network connection");
+    // if (!_network.init(WIFI_STA))
+    if (!_network.init(WIFI_AP))
+    {
+        ESP_LOGE(appTag, "Failed to initialize network");
+    }
+    
     if (!startWebServer())
     {
         ESP_LOGE(appTag, "Failed to start web server");
-        return false;
     }
 
     totalGifFiles = getGifInventory("/");
@@ -372,7 +361,7 @@ void GifDisplayer::_uploadFileHandleCallback(String filename, size_t index, uint
 
     static File uploadFile;
     ESP_LOGD(appTag, "Received file: %s, index: %d, len: %d, final: %d\n", filename.c_str(), index, len, final);
-    
+
     if (!index)
     {
         // Open the file for writing on the SD card
@@ -391,8 +380,8 @@ void GifDisplayer::_uploadFileHandleCallback(String filename, size_t index, uint
         }
     }
 
-        // // Add a delay to allow other tasks to run and reset the watchdog timer
-        // vTaskDelay(10 / portTICK_PERIOD_MS);
+    // // Add a delay to allow other tasks to run and reset the watchdog timer
+    // vTaskDelay(10 / portTICK_PERIOD_MS);
 
     if (final)
     {
@@ -413,7 +402,7 @@ void GifDisplayer::_deleteFileHandleCallback()
     }
 
     ESP_LOGW(appTag, "Deleting all files");
-    _storage.deleteAllFiles("/");
+    _storage.deleteAllFiles();
     vTaskDelay(2000 / portTICK_PERIOD_MS);
     esp_restart();
 }
@@ -432,9 +421,55 @@ void GifDisplayer::_deleteFileHandleCallback()
             }
 
             ESP_LOGW(appTag, "Deleting all files");
-            app->_storage.deleteAllFiles("/");
+            app->_storage.deleteAllFiles();
             vTaskDelay(2000 / portTICK_PERIOD_MS);
             esp_restart();
         }
     }
+}
+
+/*STATIC*/ void GifDisplayer::_taskFuncWebServer(void *pvParameters)
+{
+    GifDisplayer *app = static_cast<GifDisplayer *>(pvParameters);
+    wifi_event_group = xEventGroupCreate();
+
+    if (wifi_event_group == NULL)
+    {
+        ESP_LOGE(appTag, "Failed to create event group");
+    }
+    
+    ESP_LOGW(appTag, "Waiting for network connection");
+    if (!app->_network.init(WIFI_STA))
+    {
+        ESP_LOGE(appTag, "Failed to initialize network");
+    }
+    
+    if (!app->startWebServer())
+    {
+        ESP_LOGE(appTag, "Failed to start web server");
+    }
+
+    // while (1)
+    // {
+    //     if (app->_network.isConnected())
+    //     {
+    //         xEventGroupSetBits(wifi_event_group, WIFI_CONNECTED_BIT);
+    //     }
+    //     else
+    //     {
+    //         xEventGroupSetBits(wifi_event_group, WIFI_DISCONNECTED_BIT);
+    //     }
+
+    //     // EventBits_t bits = xEventGroupWaitBits(wifi_event_group, WIFI_CONNECTED_BIT, pdFALSE, pdTRUE, portMAX_DELAY);
+    //     EventBits_t bits = xEventGroupGetBits(wifi_event_group);
+    //     if (bits & WIFI_CONNECTED_BIT)
+    //     {
+    //         ESP_LOGI(appTag, "Network connected");
+    //         ESP_LOGI(appTag, "Starting Web Server");
+    //         if (!app->startWebServer())
+    //         {
+    //             ESP_LOGE(appTag, "Failed to start web server");
+    //         }
+    //     }
+    // }
 }

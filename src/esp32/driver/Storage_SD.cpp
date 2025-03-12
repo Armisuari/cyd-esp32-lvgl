@@ -14,7 +14,7 @@ Storage_SD::~Storage_SD()
 
 bool Storage_SD::init()
 {
-    #ifdef USE_SD
+#ifdef USE_SD
     while (!SD.begin(_chipSelect))
     {
         ESP_LOGE(SDTag, "SD Card Mount Failed");
@@ -22,23 +22,23 @@ bool Storage_SD::init()
     }
 
     ESP_LOGI(SDTag, "SD Card Mount Success");
-    #else
+#else
     if (!LittleFS.begin())
     {
         ESP_LOGE(SDTag, "LittleFS Mount Failed");
         return false;
     }
-    #endif
+#endif
     return true;
 }
 
 fs::File Storage_SD::openFile(const String &fileName, const char *mode)
 {
-    #ifdef USE_SD
+#ifdef USE_SD
     File file = SD.open(fileName, mode);
-    #else
+#else
     fs::File file = LittleFS.open(fileName, mode);
-    #endif
+#endif
     if (!file)
     {
         ESP_LOGE(SDTag, "Failed to open file for reading");
@@ -49,11 +49,11 @@ fs::File Storage_SD::openFile(const String &fileName, const char *mode)
 
 bool Storage_SD::deleteFile(const String &fileName)
 {
-    #ifdef USE_SD
+#ifdef USE_SD
     if (SD.remove(fileName))
-    #else
+#else
     if (LittleFS.remove(fileName))
-    #endif
+#endif
     {
         ESP_LOGI(SDTag, "File deleted: %s", fileName);
         return true;
@@ -65,28 +65,36 @@ bool Storage_SD::deleteFile(const String &fileName)
     }
 }
 
-bool Storage_SD::deleteAllFiles(const char *dir)
+bool Storage_SD::deleteAllFiles()
 {
-    ESP_LOGI(SDTag, "Deleting all files in %s", dir);
-    #ifdef USE_SD
+    const char *rootDir = "/";
+    ESP_LOGI(SDTag, "Deleting all files and directories in %s", rootDir);
+#ifdef USE_SD
     if (!SD.begin(_chipSelect))
     {
         ESP_LOGE(SDTag, "SD Card not mounted");
         return false;
     }
-    fs::File root = SD.open(dir);
-    #else
-    fs::File root = LittleFS.open(dir);
-    #endif
+
+    fs::File root = SD.open(rootDir);
     if (!root)
     {
-        ESP_LOGE(SDTag, "Failed to open directory: %s", dir);
+        ESP_LOGE(SDTag, "Failed to open root directory: %s", rootDir);
         return false;
     }
+    ESP_LOGD(SDTag, "After open root directory");
+#else
+    fs::File root = LittleFS.open(rootDir);
+    if (!root)
+    {
+        ESP_LOGE(SDTag, "Failed to open root directory: %s", rootDir);
+        return false;
+    }
+#endif
 
     while (true)
     {
-        ESP_LOGD(SDTag, "Deleting files in %s", dir);
+        ESP_LOGD(SDTag, "Deleting files in %s", rootDir);
         fs::File entry = root.openNextFile();
         if (!entry)
         {
@@ -94,7 +102,7 @@ bool Storage_SD::deleteAllFiles(const char *dir)
             break;
         }
 
-        String fileName = "/" + String(entry.name());
+        String fileName = String(rootDir) + String(entry.name());
         if (entry.isDirectory())
         {
             ESP_LOGI(SDTag, "Deleting directory: %s", fileName.c_str());
@@ -109,53 +117,70 @@ bool Storage_SD::deleteAllFiles(const char *dir)
         entry.close();
     }
 
+    root.close();
     return true;
 }
 
 bool Storage_SD::deleteDirectory(const char *dirname)
 {
-    #ifdef USE_SD
-    if (!SD.begin(_chipSelect))
+    ESP_LOGI(SDTag, "Deleting directory: %s", dirname);
+#ifdef USE_SD
+    // Check if the directory exists
+    if (!SD.exists(dirname))
     {
-        ESP_LOGE(SDTag, "SD Card not mounted");
+        ESP_LOGE(SDTag, "Directory does not exist: %s", dirname);
         return false;
     }
-    File dir = SD.open(dirname);
+
+    fs::File dir = SD.open(dirname);
+    if (!dir)
+    {
+        ESP_LOGE(SDTag, "Failed to open directory: %s", dirname);
+        return false;
+    }
     #else
     fs::File dir = LittleFS.open(dirname);
-    #endif
+    if (!dir)
+    {
+        ESP_LOGE(SDTag, "Failed to open directory: %s", dirname);
+        return false;
+    }
+#endif
+
     while (true)
     {
-        File entry = dir.openNextFile();
+        fs::File entry = dir.openNextFile();
         if (!entry)
         {
             break; // No more files
         }
 
+        String fileName = String(dirname) + "/" + String(entry.name());
         if (entry.isDirectory())
         {
             // Recursively delete subdirectory
-            deleteDirectory(entry.name());
+            deleteDirectory(fileName.c_str());
         }
         else
         {
             // Delete file
-            ESP_LOGI(SDTag, "Deleting file: %s", entry.name());
-            #ifdef USE_SD
-            SD.remove(entry.name());
-            #else
-            LittleFS.remove(entry.name());
-            #endif
+            ESP_LOGI(SDTag, "Deleting file: %s", fileName.c_str());
+#ifdef USE_SD
+            SD.remove(fileName.c_str());
+#else
+            LittleFS.remove(fileName.c_str());
+#endif
         }
 
         entry.close();
     }
-    // After directory is empty, remove it
-    #ifdef USE_SD
+
+// After directory is empty, remove it
+#ifdef USE_SD
     SD.rmdir(dirname);
-    #else
+#else
     LittleFS.rmdir(dirname);
-    #endif
+#endif
 
     return true;
 }

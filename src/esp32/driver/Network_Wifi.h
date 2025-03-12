@@ -22,6 +22,7 @@ class Network_Wifi : public NetworkInterface
     private:
         char _ssid[32];
         char _password[32];
+        const char *_passwordAP = "gifplayer";
         bool _connected;
         const char* WIFI_SSID_PREFIX = "esp32-cyd-";
 

@@ -18,7 +18,7 @@ bool Network_Wifi::init(wifi_mode_t mode)
     if (mode == WIFI_AP)
     {
         generateSSIDName(_ssid);
-        WiFi.softAP(_ssid, _password);
+        WiFi.softAP(_ssid, _passwordAP);
         IPAddress IP = WiFi.softAPIP();
         ESP_LOGI(wifiTag, "AP IP Address: %s", IP.toString().c_str());
     }
