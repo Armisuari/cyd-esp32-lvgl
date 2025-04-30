@@ -324,7 +324,7 @@ int GifDisplayer::getGifInventory(const char *basePath)
 void GifDisplayer::displayAllGif()
 {
     const char *_fileName = gifFiles[currentGifFile++ % totalGifFiles].c_str();
-    std::string fileName = std::string("/") + std::string(_fileName);
+    std::string fileName = std::string("gif/") + std::string(_fileName);
 
     int loops = 5;
     int durationControl = 3000;
@@ -366,7 +366,7 @@ void GifDisplayer::_uploadFileHandleCallback(String filename, size_t index, uint
     {
         // Open the file for writing on the SD card
         esp_task_wdt_reset(); // Reset the watchdog timer
-        filename = "/uploaded_" + filename;
+        filename = "gif/uploaded_" + filename;
         ESP_LOGD(appTag, "Uploading file: %s\n", filename.c_str());
         uploadFile = _storage.openFile(filename, "w");
     }

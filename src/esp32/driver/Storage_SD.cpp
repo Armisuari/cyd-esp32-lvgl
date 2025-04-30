@@ -67,7 +67,7 @@ bool Storage_SD::deleteFile(const String &fileName)
 
 bool Storage_SD::deleteAllFiles()
 {
-    const char *rootDir = "/";
+    const char *rootDir = "gif/";
     ESP_LOGI(SDTag, "Deleting all files and directories in %s", rootDir);
 #ifdef USE_SD
     if (!SD.begin(_chipSelect))
