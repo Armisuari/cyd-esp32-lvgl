@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include "param.h"
 
 // #define USE_EX
 
@@ -19,11 +20,16 @@ Display_ST7796 display;
 // Network_Wifi network("AksesPoin_eFishery", "efishery2516!");
 Network_Wifi network("Angkasa-Timelapse", "1234567890");
 
+const char *main_tag = "main";
+
 GifDisplayer app(stg, display, network);
 
 void setup()
 {
     Serial.begin(115200);
+    ESP_LOGI(main_tag, "Board starting...");
+    ESP_LOGI(main_tag, "Firmware version: %d.%d.%d-%s", FIRMWARE_VERSION_MAJOR, FIRMWARE_VERSION_MINOR, FIRMWARE_VERSION_PATCH, FIRMWARE_VERSION_BRANCH);
+    ESP_LOGI(main_tag, "Board version: %s", BOARD_VERSION);
     delay(1000);
 
     if (!app.init())
