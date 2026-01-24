@@ -34,7 +34,17 @@ void setup()
 
 void loop()
 {
-    vTaskDelete(NULL);
+    // vTaskDelete(NULL);
+    // receive command from serial
+    if (Serial.available() > 0)
+    {
+        String command = Serial.readStringUntil('\n');
+        command.trim();
+        if (command == "reset")
+        {
+            esp_restart();
+        }
+    }
 }
 
 #endif
